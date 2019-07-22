@@ -43,7 +43,12 @@ module FastJsonapi
 
       return serializable_hash unless @resource
 
-      serializable_hash[:data] = self.class.record_hash(@resource, @fieldsets[self.class.record_type.to_sym], @params)
+      serializable_hash[:data]     =  if self.class.record_type.is_a?(Proc)
+                                        r_type = self.class.record_type.call(self).to_s.gsub('_serializer', '').to_sym
+                                        self.class.record_hash(@resource, @fieldsets[r_type], @params)
+                                      else
+                                        self.class.record_hash(@resource, @fieldsets[self.class.record_type.to_sym], @params)
+                                      end
       serializable_hash[:included] = self.class.get_included_records(@resource, @includes, @known_included_objects, @fieldsets, @params) if @includes.present?
       serializable_hash
     end
@@ -51,9 +56,14 @@ module FastJsonapi
     def hash_for_collection
       serializable_hash = {}
 
-      data = []
-      included = []
-      fieldset = @fieldsets[self.class.record_type.to_sym]
+      data     =  []
+      included =  []
+      r_type   =  if self.class.record_type.is_a?(Proc)
+                    self.class.record_type.call(self).to_s.gsub('_serializer', '').to_sym
+                  else
+                    self.class.record_type.to_sym
+                  end
+      fieldset =  @fieldsets[r_type]
       @resource.each do |record|
         data << self.class.record_hash(record, fieldset, @params)
         included.concat self.class.get_included_records(record, @includes, @known_included_objects, @fieldsets, @params) if @includes.present?
@@ -166,8 +176,8 @@ module FastJsonapi
         set_key_transform :dash
       end
 
-      def set_type(type_name)
-        self.record_type = run_key_transform(type_name)
+      def set_type(type_name = nil, &block)
+        self.record_type = block || run_key_transform(type_name)
       end
 
       def set_id(id_name = nil, &block)

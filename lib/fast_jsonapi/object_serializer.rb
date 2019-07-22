@@ -246,10 +246,12 @@ module FastJsonapi
           base_serialization_key = base_key.to_s.singularize
           base_key_sym = base_serialization_key.to_sym
           id_postfix = '_ids'
+          type_postfix = '_types'
         else
           base_serialization_key = base_key
           base_key_sym = name
           id_postfix = '_id'
+          #type_postfix = '_type'
         end
         Relationship.new(
           key: options[:key] || run_key_transform(base_key),
@@ -257,6 +259,11 @@ module FastJsonapi
           id_method_name: compute_id_method_name(
             options[:id_method_name],
             "#{base_serialization_key}#{id_postfix}".to_sym,
+            block
+          ),
+          type_method_name: compute_type_method_name(
+            options[:type_method_name],
+            "#{base_serialization_key}#{type_postfix}".to_sym,
             block
           ),
           record_type: options[:record_type] || run_key_transform(base_key_sym),
@@ -271,6 +278,14 @@ module FastJsonapi
           links: options[:links],
           lazy_load_data: options[:lazy_load_data]
         )
+      end
+
+      def compute_type_method_name(custom_type_method_name, type_method_name_from_relationship, block)
+        if block.present?
+          custom_type_method_name || :record_type
+        else
+          custom_type_method_name || type_method_name_from_relationship
+        end
       end
 
       def compute_id_method_name(custom_id_method_name, id_method_name_from_relationship, block)

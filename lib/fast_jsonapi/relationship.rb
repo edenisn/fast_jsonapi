@@ -84,8 +84,13 @@ module FastJsonapi
     end
 
     def ids_hash(ids, types)
-      return ids.map.with_index { |id, i| id_hash(id, types[i]) } if ids.respond_to?(:map) && types.respond_to?(:map)
-      id_hash(ids, record_type) # ids variable is just a single id here
+      if ids.respond_to?(:map) && types.respond_to?(:map)
+        ids.map.with_index { |id, i| id_hash(id, types[i]) }
+      elsif ids.respond_to? :map
+        ids.map { |id| id_hash(id, record_type) }
+      else
+        id_hash(ids, record_type) # ids variable is just a single id here
+      end
     end
 
     def id_hash(id, record_type, default_return=false)
